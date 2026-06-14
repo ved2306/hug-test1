@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>A Hug From Me</title>
+  <style>
+    :root {
+      --pink: #ff7fb5;
+      --pink2: #ff4f9a;
+      --gold: #ffd56a;
+      --text: #f8f5ff;
+      --muted: rgba(248,245,255,0.72);
+      --ease-out: cubic-bezier(.16,1,.3,1);
+      --ease-soft: cubic-bezier(.2,.8,.2,1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: linear-gradient(160deg, #060816, #100a27 45%, #1f1140);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+
+    /* subtle grid overlay */
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 120px 120px;
+      pointer-events: none;
+    }
+
+    #app { position: relative; width: 100%; height: 100%; isolation: isolate; }
+
+    /* ── SCENE ── */
+    .scene { position: absolute; inset: 0; overflow: hidden; }
+
+    /* moon */
+    .moon {
+      position: absolute;
+      top: 5vh; left: 8vw;
+      width: clamp(52px,7vw,80px);
+      height: clamp(52px,7vw,80px);
+      border-radius: 50%;
+      background: radial-gradient(circle at 34% 32%, #fff, #fff6d6 42%, #f2d77a);
+      filter: drop-shadow(0 0 22px rgba(255,244,193,.45));
+    }
+
+    /* vignette */
+    .vignette {
+      position: absolute; inset: 0;
+      box-shadow: inset 0 0 140px rgba(0,0,0,.5), inset 0 0 320px rgba(0,0,0,.45);
+      pointer-events: none;
+    }
+
+    /* spotlight */
+    .spotlight {
+      position: absolute; left: 50%; bottom: 0;
+      width: 140vw; height: 58vh;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse at center bottom, rgba(255,255,255,.10), transparent 62%);
+      filter: blur(20px);
+      opacity: .65;
+      transition: opacity 800ms var(--ease-out);
+    }
+
+    /* ambient layers */
+    .stars, .hearts, .dust { position: absolute; inset: 0; pointer-events: none; }
+
+    /* ── BOOT SCREEN ── */
+    .boot-screen {
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      z-index: 10;
+      background:
+        radial-gradient(800px 500px at 50% 40%, rgba(255,127,181,.18), transparent 60%),
+        linear-gradient(180deg, rgba(8,8,22,.12), rgba(8,8,22,.80));
+      backdrop-filter: blur(10px);
+      transition: opacity 900ms var(--ease-out), visibility 900ms;
+    }
+    .boot-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .boot-card {
+      width: min(92vw, 680px);
+      padding: clamp(22px,4vw,40px);
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: 0 22px 70px rgba(0,0,0,.45);
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .boot-card::before {
+      content: "";
+      position: absolute; inset: -40% -30%;
+      background: conic-gradient(from 180deg, transparent 0 20%, rgba(255,255,255,.16) 20% 25%, transparent 25% 50%, rgba(255,255,255,.12) 50% 58%, transparent 58%);
+      animation: sheen 9s linear infinite;
+      opacity: .45;
+    }
+    @keyframes sheen { to { transform: rotate(360deg); } }
+
+    .boot-title {
+      position: relative; z-index: 1;
+      font-size: clamp(1.9rem,5vw,3.8rem);
+      font-weight: 800;
+      letter-spacing: -.04em;
+      line-height: 1.05;
+      background: linear-gradient(135deg, #fff, #ffc2dd 36%, #ffd56a 70%, #fff);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent;
+    }
+    .boot-sub {
+      position: relative; z-index: 1;
+      margin: 16px auto 0;
+      max-width: 56ch;
+      color: var(--muted);
+      font-size: clamp(.96rem,2vw,1.1rem);
+      line-height: 1.8;
+    }
+
+    .actions {
+      position: relative; z-index: 1;
+      display: flex; justify-content: center;
+      gap: 14px; flex-wrap: wrap;
+      margin-top: 26px;
+    }
+
+    .btn {
+      appearance: none; border: 0; cursor: pointer;
+      color: white; font-weight: 700;
+      font-size: 1rem; padding: 14px 24px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #ff76b1, #ff4c93 55%, #c83cff);
+      box-shadow: 0 12px 32px rgba(255,92,156,.34);
+      transition: transform .22s var(--ease-soft), box-shadow .22s var(--ease-soft);
+      min-width: 170px; position: relative; isolation: isolate;
+    }
+    .btn::before {
+      content: ""; position: absolute; inset: 1px;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255,255,255,.10), transparent 50%);
+      z-index: -1;
+    }
+    .btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 18px 42px rgba(255,92,156,.44); }
+    .btn:active { transform: translateY(1px) scale(.98); }
+    .btn.secondary {
+      background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: none;
+    }
+
+    /* ── STICKMAN SVG WRAPPER ── */
+    .character-wrap {
+      position: absolute;
+      left: 50%; bottom: 8vh;
+      transform: translateX(-50%) scale(.3);
+      transform-origin: center bottom;
+      width: 160px; height: 280px;
+      z-index: 3;
+      will-change: transform, left, bottom;
+      opacity: 0;
+    }
+    .character-wrap.visible { opacity: 1; }
+    .character-wrap.approach {
+      transition:
+        bottom 4.6s var(--ease-out),
+        transform 4.6s var(--ease-out);
+    }
+
+    #stickman { width: 100%; height: 100%; overflow: visible; }
+
+    /* running bob on the wrapper */
+    .character-wrap.running { animation: runBob .52s ease-in-out infinite; }
+    @keyframes runBob {
+      0%,100% { margin-bottom: 0; }
+      50%      { margin-bottom: -6px; }
+    }
+
+    /* ── STICKMAN LIMB ANIMATIONS ── */
+
+    /* idle breathing */
+    #sm-body { transform-origin: 80px 120px; animation: idle 2.4s ease-in-out infinite; }
+    @keyframes idle {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(3px); }
+    }
+
+    /* running limbs */
+    .running #sm-la { animation: rArmL .52s ease-in-out infinite; transform-origin: 80px 128px; }
+    .running #sm-ra { animation: rArmR .52s ease-in-out infinite; transform-origin: 80px 128px; }
+    .running #sm-ll { animation: rLegL .52s ease-in-out infinite; transform-origin: 80px 195px; }
+    .running #sm-rl { animation: rLegR .52s ease-in-out infinite; transform-origin: 80px 195px; }
+
+    @keyframes rArmL {
+      0%,100% { transform: rotate(-38deg); }
+      50%      { transform: rotate(38deg); }
+    }
+    @keyframes rArmR {
+      0%,100% { transform: rotate(38deg); }
+      50%      { transform: rotate(-38deg); }
+    }
+    @keyframes rLegL {
+      0%,100% { transform: rotate(-34deg); }
+      50%      { transform: rotate(34deg); }
+    }
+    @keyframes rLegR {
+      0%,100% { transform: rotate(34deg); }
+      50%      { transform: rotate(-34deg); }
+    }
+
+    /* hug pose */
+    .hugging #sm-la { animation: hugL .65s var(--ease-out) forwards; transform-origin: 80px 128px; }
+    .hugging #sm-ra { animation: hugR .65s var(--ease-out) forwards; transform-origin: 80px 128px; }
+    .hugging #sm-ll { animation: none; transform-origin: 80px 195px; transform: rotate(-6deg); }
+    .hugging #sm-rl { animation: none; transform-origin: 80px 195px; transform: rotate(6deg); }
+    .hugging #sm-body { animation: hugPulse 1.1s ease-in-out infinite; }
+
+    @keyframes hugL {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(72deg) translateY(-8px); }
+    }
+    @keyframes hugR {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(-72deg) translateY(-8px); }
+    }
+    @keyframes hugPulse {
+      0%,100% { transform: scale(1) translateY(0); }
+      50%      { transform: scale(1.04) translateY(-2px); }
+    }
+
+    /* head idle nod */
+    #sm-head { transform-origin: 80px 82px; animation: headNod 3s ease-in-out infinite; }
+    @keyframes headNod {
+      0%,100% { transform: rotate(0deg); }
+      50%      { transform: rotate(2.5deg); }
+    }
+
+    /* hug flash */
+    .hug-flash {
+      position: fixed; inset: 0;
+      background: radial-gradient(circle at center, rgba(255,255,255,.40), rgba(255,127,181,.22) 34%, rgba(255,77,147,.12) 56%, transparent 72%);
+      opacity: 0; pointer-events: none; z-index: 8;
+    }
+    .hug-flash.show { animation: flash 1100ms ease-out forwards; }
+    @keyframes flash {
+      0%  { opacity: 0; transform: scale(.86); }
+      20% { opacity: 1; }
+      100%{ opacity: 0; transform: scale(1.18); }
+    }
+
+    /* screen warm */
+    .screen-hug {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 9; opacity: 0;
+    }
+    .screen-hug.show { animation: screenWarm 1200ms ease-out forwards; }
+    @keyframes screenWarm {
+      0%  { opacity: 0; background: rgba(255,119,166,0); }
+      15% { opacity: 1; background: rgba(255,119,166,.10); }
+      60% { opacity: 1; background: rgba(255,119,166,.16); }
+      100%{ opacity: 0; background: rgba(255,119,166,0); }
+    }
+
+    /* hug copy */
+    .hug-copy {
+      position: absolute; left: 50%; top: 14vh;
+      transform: translateX(-50%) translateY(16px);
+      width: min(92vw, 720px);
+      text-align: center; z-index: 4;
+      pointer-events: none; opacity: 0;
+      transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
+    }
+    .hug-copy.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .hug-copy .big {
+      display: block;
+      font-size: clamp(1.7rem,4vw,3.2rem);
+      font-weight: 800; letter-spacing: -.03em; line-height: 1.1;
+      background: linear-gradient(135deg, #fff, #ffd4e4 40%, #ffeaa1 70%, #fff);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent;
+    }
+    .hug-copy .small {
+      margin-top: 12px;
+      font-size: clamp(.96rem,2vw,1.06rem);
+      color: rgba(255,255,255,.74); line-height: 1.8;
+    }
+
+    /* button bar */
+    .button-bar {
+      position: absolute; left: 50%; bottom: 8vh;
+      transform: translateX(-50%);
+      z-index: 5; display: none;
+      gap: 12px; justify-content: center; flex-wrap: wrap;
+      width: min(92vw, 880px);
+    }
+    .button-bar.visible { display: flex; }
+
+    .mini-btn {
+      pointer-events: auto;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.90);
+      border-radius: 16px; padding: 12px 18px;
+      font-weight: 700; cursor: pointer;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 14px 40px rgba(0,0,0,.22);
+      transition: transform .2s var(--ease-soft), background .2s;
+      font-size: .95rem;
+    }
+    .mini-btn:hover { transform: translateY(-2px); background: rgba(255,255,255,.14); }
+
+    /* footer prompt */
+    .footer-prompt {
+      position: absolute; left: 50%; bottom: 4vh;
+      transform: translateX(-50%);
+      z-index: 5; text-align: center;
+      width: min(92vw, 700px);
+      pointer-events: none;
+      transition: opacity 600ms;
+    }
+    .footer-prompt .line1 { font-size: .88rem; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.48); }
+    .footer-prompt .line2 { margin-top: 7px; font-size: clamp(1rem,2.1vw,1.28rem); color: rgba(255,255,255,.88); }
+
+    /* overlays */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(4,5,16,.72);
+      backdrop-filter: blur(16px);
+      display: none; place-items: center;
+      z-index: 20; padding: 20px;
+    }
+    .overlay.open { display: grid; }
+    .modal {
+      width: min(92vw,860px); max-height: 88vh; overflow: auto;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: 0 22px 70px rgba(0,0,0,.45);
+      position: relative; padding: clamp(20px,3.4vw,34px);
+    }
+    .modal-close {
+      position: sticky; top: 0; margin-left: auto; display: block;
+      border: 0; background: rgba(255,255,255,.10); color: white;
+      width: 44px; height: 44px; border-radius: 14px;
+      cursor: pointer; font-size: 1.3rem; backdrop-filter: blur(8px);
+    }
+    .modal h2 { margin: 10px 0 8px; font-size: clamp(1.5rem,4vw,2.5rem); line-height: 1.1; }
+    .modal p  { color: rgba(255,255,255,.80); line-height: 1.9; font-size: clamp(.96rem,2vw,1.04rem); }
+    .letter-paper {
+      margin-top: 18px; padding: clamp(18px,3vw,28px);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(255,245,249,.94));
+      color: #281827;
+      box-shadow: 0 22px 60px rgba(0,0,0,.25);
+    }
+    .letter-body { white-space: pre-wrap; font-family: Georgia, serif; line-height: 1.9; font-size: clamp(1rem,2vw,1.1rem); }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px,1fr)); gap: 14px; margin-top: 18px; }
+    .card-photo {
+      position: relative; aspect-ratio: 1; border-radius: 20px; overflow: hidden;
+      cursor: pointer; border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      box-shadow: 0 14px 42px rgba(0,0,0,.18);
+      transition: transform .2s var(--ease-soft), box-shadow .2s;
+    }
+    .card-photo:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 20px 52px rgba(0,0,0,.28); }
+    .card-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .card-photo .emoji-slot {
+      width:100%;height:100%;display:grid;place-items:center;
+      font-size:3rem;background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,255,255,.06));
+    }
+    .card-photo .caption {
+      position: absolute; inset: auto 0 0;
+      padding: 12px 10px 10px;
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.84));
+      font-size: .86rem; text-align: center;
+      line-height: 1.35;
+    }
+
+    /* toast */
+    .toast {
+      position: fixed; left: 50%; bottom: 22px;
+      transform: translateX(-50%) translateY(22px);
+      background: rgba(9,10,22,.88); color: white;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 18px 60px rgba(0,0,0,.34);
+      backdrop-filter: blur(10px);
+      border-radius: 999px; padding: 11px 18px;
+      font-size: .94rem; z-index: 30;
+      opacity: 0; transition: opacity .22s ease, transform .22s ease;
+      pointer-events: none; max-width: min(92vw,640px);
+      text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* particles */
+    .heart {
+      position: absolute; width: 20px; height: 20px;
+      transform: rotate(45deg);
+      background: linear-gradient(135deg, #ff8ab5, #ff4f9a);
+      filter: drop-shadow(0 0 8px rgba(255,127,181,.5));
+      animation: heartFloat var(--dur,3.2s) ease-in forwards;
+    }
+    .heart::before, .heart::after {
+      content: ""; position: absolute;
+      width: 100%; height: 100%; border-radius: 50%; background: inherit;
+    }
+    .heart::before { left: -50%; }
+    .heart::after  { top:  -50%; }
+    @keyframes heartFloat {
+      0%   { transform: translateY(0) rotate(45deg) scale(.6); opacity: 0; }
+      15%  { opacity: 1; }
+      100% { transform: translateY(-180px) rotate(45deg) scale(1.3); opacity: 0; }
+    }
+
+    .confetti {
+      position: absolute; width: 8px; height: 14px;
+      border-radius: 4px;
+      animation: confettiFall var(--dur,2.6s) cubic-bezier(.22,.61,.36,1) forwards;
+      transform-origin: center;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translate3d(var(--dx,0px), 110vh, 0) rotate(820deg); opacity: 0; }
+    }
+
+    .firework {
+      position: absolute; width: 4px; height: 4px;
+      border-radius: 50%; background: white;
+      box-shadow: 0 0 12px currentColor;
+      animation: explode 900ms ease-out forwards;
+    }
+    @keyframes explode {
+      0%   { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--dx),var(--dy)) scale(0); opacity: 0; }
+    }
+
+    .star-dot {
+      position: absolute;
+      border-radius: 50%; background: white;
+      animation: twinkle var(--dur,4s) ease-in-out infinite var(--delay,0s);
+    }
+    @keyframes twinkle {
+      0%,100%{ opacity: .18; transform: scale(.8); }
+      50%    { opacity:  .9; transform: scale(1.4); }
+    }
+
+    .petal {
+      position: absolute; width: 9px; height: 15px;
+      border-radius: 100% 0 100% 0; opacity: .88;
+      filter: drop-shadow(0 0 6px rgba(255,127,181,.38));
+      animation: petalFall linear forwards;
+    }
+    @keyframes petalFall {
+      0%   { transform: translate3d(0,-20px,0) rotate(0deg); opacity: 0; }
+      8%   { opacity: 1; }
+      100% { transform: translate3d(var(--dx,0px), 105vh,0) rotate(520deg); opacity: 0; }
+    }
+
+    @media (max-width: 640px) {
+      .character-wrap { width: 120px; height: 210px; }
+      .button-bar { bottom: 7vh; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="scene" id="scene">
+    <div class="moon" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="spotlight" id="spotlight" aria-hidden="true"></div>
+    <div class="stars"  id="stars"  aria-hidden="true"></div>
+    <div class="hearts" id="hearts" aria-hidden="true"></div>
+    <div class="dust"   id="dust"   aria-hidden="true"></div>
+
+    <!-- BOOT -->
+    <div class="boot-screen" id="bootScreen">
+      <div class="boot-card">
+        <h1 class="boot-title">You are never alone😘</h1>
+        <p class="boot-sub">
+          hello to the pretty lady across the phone..
+        </p>
+        <div class="actions">
+          <button class="btn" id="hugBtn">❤️ Hug Me</button>
+          <button class="btn secondary" id="demoBtn">✨ Preview</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STICKMAN -->
+    <div class="character-wrap" id="characterWrap">
+      <!--
+        Coordinate system: viewBox "0 0 160 280"
+        Head centre: (80, 50) r=28
+        Neck: (80,78)→(80,20000)
+        Body: (80,90)→(80,180)
+        Shoulders at y=120: left arm (80,120)→(38,160), right arm (80,120)→(122,160)
+        Hips at y=180: left leg (80,180)→(52,260), right leg (80,180)→(108,260)
+      -->
+      <svg id="stickman" viewBox="0 0 160 280" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- shadow ellipse on ground -->
+        <ellipse cx="80" cy="272" rx="36" ry="6" fill="rgba(0,0,0,0.28)" filter="url(#glow)"/>
+
+        <g id="sm-body" filter="url(#glow)">
+          <!-- HEAD -->
+          <g id="sm-head">
+            <circle cx="80" cy="48" r="30" fill="#f9d6c8" stroke="#e8b8a4" stroke-width="1.5"/>
+            <!-- eyes -->
+            <circle cx="68" cy="44" r="5" fill="#2a1a10"/>
+            <circle cx="92" cy="44" r="5" fill="#2a1a10"/>
+            <!-- eye shine -->
+            <circle cx="70" cy="42" r="1.8" fill="white"/>
+            <circle cx="94" cy="42" r="1.8" fill="white"/>
+            <!-- smile — changes to big grin in hug pose via JS -->
+            <path id="sm-smile" d="M 68 57 Q 80 66 92 57" stroke="#c0826a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <!-- hair -->
+            <path d="M 52 40 Q 54 18 80 16 Q 106 18 108 40 Q 96 28 80 28 Q 64 28 52 40 Z" fill="#1a1210"/>
+          </g>
+
+          <!-- NECK -->
+          <line x1="80" y1="78" x2="80" y2="96" stroke="#e8b8a4" stroke-width="6" stroke-linecap="round"/>
+
+          <!-- TORSO -->
+          <line x1="80" y1="96" x2="80" y2="186" stroke="white" stroke-width="5.5" stroke-linecap="round"/>
+
+          <!-- LEFT ARM  (transform-origin at shoulder 80,120) -->
+          <line id="sm-la" x1="80" y1="120" x2="38" y2="166" stroke="white" stroke-width="5" stroke-linecap="round"/>
+
+          <!-- RIGHT ARM (transform-origin at shoulder 80,120) -->
+          <line id="sm-ra" x1="80" y1="120" x2="122" y2="166" stroke="white" stroke-width="5" stroke-linecap="round"/>
+
+          <!-- LEFT LEG (transform-origin at hip 80,186) -->
+          <line id="sm-ll" x1="80" y1="186" x2="50" y2="262" stroke="white" stroke-width="5" stroke-linecap="round"/>
+
+          <!-- RIGHT LEG (transform-origin at hip 80,186) -->
+          <line id="sm-rl" x1="80" y1="186" x2="110" y2="262" stroke="white" stroke-width="5" stroke-linecap="round"/>
+
+          <!-- FEET -->
+          <ellipse id="sm-fl" cx="42" cy="264" rx="14" ry="6" fill="white" opacity=".85"/>
+          <ellipse id="sm-fr" cx="118" cy="264" rx="14" ry="6" fill="white" opacity=".85"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- HUG TEXT -->
+    <div class="hug-copy" id="hugCopy">
+      <span class="big">I am here now.</span>
+      <div class="small">I ran as fast as I could. This is the closest thing to a real hug until I see you again.</div>
+    </div>
+
+    <!-- BUTTON BAR (post-hug) -->
+    <div class="button-bar" id="buttonBar">
+      <button class="mini-btn" id="againBtn">Run Again</button>
+      <button class="mini-btn" id="letterBtn">Open Letter</button>
+      <button class="mini-btn" id="galleryBtn">See Memories</button>
+      <button class="mini-btn" id="finalBtn">Love Love Love</button>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer-prompt" id="footerPrompt">
+      <div class="line1">press once</div>
+      <div class="line2">and let the little version of me come running.</div>
+    </div>
+
+    <div class="hug-flash"  id="hugFlash"></div>
+    <div class="screen-hug" id="screenHug"></div>
+  </div>
+
+  <!-- LETTER OVERLAY -->
+  <div class="overlay" id="letterOverlay" aria-hidden="true">
+    <div class="modal">
+      <button class="modal-close" id="closeLetter">✕</button>
+      <h2>A Letter For You</h2>
+      <p>Open this whenever the night feels too quiet.</p>
+      <div class="letter-paper">
+        <div class="letter-body" id="letterBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GALLERY OVERLAY -->
+  <div class="overlay" id="galleryOverlay" aria-hidden="true">
+    <div class="modal">
+      <button class="modal-close" id="closeGallery">✕</button>
+      <h2>Moments I Want To Hold On To</h2>
+      <p>A gallery that can later hold your real photos, voice notes, and everything that matters.</p>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <audio id="audio" preload="auto" loop style="display:none">
+    <source src="assets/hbd.mp3" type="audio/mpeg" />
+  </audio>
+</div>
+
+<script>
+  /* ── CONFIG ─────────────────────────────────────────────── */
+  const CONFIG = {
+    letter: [
+      "My love,",
+      "",
+      "I made this small scene so that when you miss me, it feels like I am actually coming closer to you.",
+      "",
+      "The little version of me runs toward the screen, hugs it, and stays for a moment — because that is what I would do if I could appear in front of you right now.",
+      "",
+      "I hope this feels warm, personal, and a little bit magical.",
+      "",
+      "You are worth building beautiful things for.",
+      "",
+      "Always yours,",
+      "Ved ❤️"
+    ].join("\n"),
+    gallery: [
+      {
+        image: "memories/photo1.jpeg",
+        title: "Our Firsssst Date",
+        text: "The day I knew you were special "
+      },
+      {
+        image: "memories/photo2.jpeg",
+        title: "That Smile",
+        text: "A smile I will always remember."
+      },
+      {
+        image: "memories/photo3.jpeg",
+        title: "A Soft Moment",
+        text: "One of those quiet moments I keep in my heart."
+      },
+      {
+        image: "memories/photo4.jpeg",
+        title: "A Promise",
+        text: "A small reminder that I am always with you."
+      },
+      {
+        image: "memories/photo5.jpeg",
+        title: "A Tiny Future",
+        text: "Everything beautiful still feels ahead of us."
+      },
+      {
+        image: "memories/photo6.jpeg",
+        title: "Warm Reminder",
+        text: "You can open this whenever you miss me."
+      },
+      {
+        image: "memories/photo7.jpeg",
+        title: "Warrm Reminder",
+        text: "You can open this whenever you miss me."
+      },
+      {
+        image: "memories/photo8.jpeg",
+        title: "Warrm Reminder",
+        text: "You can open this whenever you miss me."
+      }
+    ]
+  };
+
+  const state = { running: false, hugged: false, timers: [] };
+
+  const el = id => document.getElementById(id);
+  const els = {
+    bootScreen:     el('bootScreen'),
+    hugBtn:         el('hugBtn'),
+    demoBtn:        el('demoBtn'),
+    againBtn:       el('againBtn'),
+    letterBtn:      el('letterBtn'),
+    galleryBtn:     el('galleryBtn'),
+    finalBtn:       el('finalBtn'),
+    characterWrap:  el('characterWrap'),
+    stickman:       el('stickman'),
+    smSmile:        el('sm-smile'),
+    smLA:           el('sm-la'),
+    smRA:           el('sm-ra'),
+    smLL:           el('sm-ll'),
+    smRL:           el('sm-rl'),
+    smFL:           el('sm-fl'),
+    smFR:           el('sm-fr'),
+    hugFlash:       el('hugFlash'),
+    screenHug:      el('screenHug'),
+    hugCopy:        el('hugCopy'),
+    buttonBar:      el('buttonBar'),
+    footerPrompt:   el('footerPrompt'),
+    stars:          el('stars'),
+    hearts:         el('hearts'),
+    dust:           el('dust'),
+    scene:          el('scene'),
+    spotlight:      el('spotlight'),
+    toast:          el('toast'),
+    letterOverlay:  el('letterOverlay'),
+    galleryOverlay: el('galleryOverlay'),
+    closeLetter:    el('closeLetter'),
+    closeGallery:   el('closeGallery'),
+    letterBody:     el('letterBody'),
+    galleryGrid:    el('galleryGrid'),
+    audio:          el('audio')
+  };
+
+  /* ── UTILS ──────────────────────────────────────────────── */
+  const rand  = (a,b) => Math.random()*(b-a)+a;
+  const pick  = arr  => arr[Math.floor(Math.random()*arr.length)];
+
+  function showToast(text, ms=2200) {
+    els.toast.textContent = text;
+    els.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => els.toast.classList.remove('show'), ms);
+  }
+
+  function clearTimers() {
+    state.timers.forEach(clearInterval);
+    state.timers = [];
+  }
+
+  /* ── AMBIENT SKY ────────────────────────────────────────── */
+  function initSky() {
+    for (let i=0; i<130; i++) {
+      const s = document.createElement('i');
+      s.className = 'star-dot';
+      const sz = rand(.8,2.8);
+      s.style.cssText = `
+        left:${rand(0,100)}vw; top:${rand(0,58)}vh;
+        width:${sz}px; height:${sz}px;
+        --dur:${rand(2.5,6.5)}s; --delay:${rand(0,5)}s;
+        opacity:${rand(.2,.88)};
+      `;
+      els.stars.appendChild(s);
+    }
+
+    setInterval(() => {
+      if (Math.random() < .6) dropPetal();
+    }, 700);
+  }
+
+  function dropPetal() {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.style.cssText = `
+      left:${rand(-5,105)}vw; top:-22px;
+      background:${pick(['#ff7fb5','#ff5f95','#ffd56a','#d4a4ff','#9be7ff'])};
+      --dx:${rand(-120,120)}px;
+      animation-duration:${rand(9,15)}s;
+      transform: rotate(${rand(0,360)}deg) scale(${rand(.8,1.2)});
+    `;
+    els.dust.appendChild(p);
+    setTimeout(() => p.remove(), 16000);
+  }
+
+  /* ── HEARTS ─────────────────────────────────────────────── */
+  function spawnHearts(n=12, from=null) {
+    const rect = from?.getBoundingClientRect?.();
+    for (let i=0; i<n; i++) {
+      const h = document.createElement('div');
+      h.className = 'heart';
+      const sz = rand(10,24);
+      const x = rect ? rect.left + rect.width/2  + rand(-24,24) : rand(12, window.innerWidth-12);
+      const y = rect ? rect.top  + rect.height/2 + rand(-12,12) : window.innerHeight - rand(100,200);
+      h.style.cssText = `
+        width:${sz}px; height:${sz}px;
+        left:${x}px; top:${y}px;
+        --dur:${rand(2.2,4.5)}s;
+        animation-delay:${rand(0,.25)}s;
+        background:linear-gradient(135deg,${pick(['#ff87ba','#ff4f9a','#ff7ac8','#ffb0d2'])},${pick(['#ff4f9a','#e63ff0','#ff76b1'])});
+      `;
+      els.hearts.appendChild(h);
+      setTimeout(() => h.remove(), 5000);
+    }
+  }
+
+  /* ── CONFETTI ───────────────────────────────────────────── */
+  function launchConfetti(n=60) {
+    for (let i=0; i<n; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.cssText = `
+        left:${rand(0,window.innerWidth)}px; top:${rand(-10,10)}px;
+        width:${rand(6,11)}px; height:${rand(10,18)}px;
+        background:${pick(['#ff7fb5','#ff4f9a','#ffd56a','#8be9ff','#cf8bff','#fff'])};
+        --dx:${rand(-200,200)}px; --dur:${rand(2,3.4)}s;
+        transform:rotate(${rand(0,360)}deg);
+      `;
+      els.scene.appendChild(c);
+      setTimeout(() => c.remove(), 4000);
+    }
+  }
+
+  /* ── FIREWORKS ──────────────────────────────────────────── */
+  function launchFireworks(count=5) {
+    for (let i=0; i<count; i++) {
+      const x = rand(window.innerWidth*.15, window.innerWidth*.85);
+      const y = rand(window.innerHeight*.08, window.innerHeight*.42);
+      const color = pick(['#ff7fb5','#ffd56a','#8be9ff','#cf8bff','#fff']);
+      const particles = 20 + Math.floor(Math.random()*12);
+      for (let j=0; j<particles; j++) {
+        const p = document.createElement('div');
+        p.className = 'firework';
+        const angle = Math.PI*2*j/particles;
+        const dist  = rand(60,150);
+        p.style.cssText = `
+          left:${x}px; top:${y}px;
+          color:${color}; background:${color};
+          --dx:${Math.cos(angle)*dist}px;
+          --dy:${Math.sin(angle)*dist}px;
+          animation-delay:${rand(0,.03)}s;
+        `;
+        els.scene.appendChild(p);
+        setTimeout(() => p.remove(), 1100);
+      }
+    }
+  }
+
+  /* ── STICKMAN RUNNING LIMB CONTROL ──────────────────────── */
+  /* We animate via requestAnimationFrame for max smoothness   */
+  let rafId = null;
+  let runPhase = 0;
+
+  function startRunAnimation() {
+    cancelAnimationFrame(rafId);
+    runPhase = 0;
+    const speed = 0.052; // radians per frame at 60fps ≈ ~0.52s cycle
+
+    // arm & leg max angles (radians)
+    const ARM_MAX = 0.68;
+    const LEG_MAX = 0.60;
+
+    function frame() {
+      if (!state.running) return;
+      runPhase += speed;
+
+      const s = Math.sin(runPhase);
+      const armDeg  =  s * (ARM_MAX * 180 / Math.PI);
+      const legDeg  =  s * (LEG_MAX * 180 / Math.PI);
+
+      // arms swing opposite to legs
+      setRotate(els.smLA,  armDeg, 80, 120);
+      setRotate(els.smRA, -armDeg, 80, 120);
+      setRotate(els.smLL, -legDeg, 80, 186);
+      setRotate(els.smRL,  legDeg, 80, 186);
+
+      // feet follow legs
+      setRotate(els.smFL, -legDeg * .7, 80, 186);
+      setRotate(els.smFR,  legDeg * .7, 80, 186);
+
+      rafId = requestAnimationFrame(frame);
+    }
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function stopRunAnimation() {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+
+  function setRotate(svgEl, deg, cx, cy) {
+    svgEl.setAttribute('transform', `rotate(${deg} ${cx} ${cy})`);
+  }
+
+  function clearLimbTransforms() {
+    [els.smLA, els.smRA, els.smLL, els.smRL, els.smFL, els.smFR].forEach(e => {
+      e.removeAttribute('transform');
+    });
+  }
+
+  /* ── HUG POSE (SVG attributes) ───────────────────────────── */
+  function applyHugPose() {
+    // arms up and wide
+    els.smLA.setAttribute('x2','16');
+    els.smLA.setAttribute('y2','80');
+    els.smRA.setAttribute('x2','144');
+    els.smRA.setAttribute('y2','80');
+    // big grin
+    els.smSmile.setAttribute('d','M 62 57 Q 80 72 98 57');
+    // feet together
+    clearLimbTransforms();
+    els.smLL.setAttribute('x2','60');
+    els.smRL.setAttribute('x2','100');
+  }
+
+  function resetPose() {
+    els.smLA.setAttribute('x2','38');  els.smLA.setAttribute('y2','166');
+    els.smRA.setAttribute('x2','122'); els.smRA.setAttribute('y2','166');
+    els.smLL.setAttribute('x2','50');  els.smLL.setAttribute('y2','262');
+    els.smRL.setAttribute('x2','110'); els.smRL.setAttribute('y2','262');
+    els.smSmile.setAttribute('d','M 68 57 Q 80 66 92 57');
+    els.smFL.setAttribute('cx','42');
+    els.smFR.setAttribute('cx','118');
+    clearLimbTransforms();
+  }
+
+  /* ── MAIN FLOW ───────────────────────────────────────────── */
+  function startRun() {
+    if (state.running) return;
+    state.running = true;
+    els.hugBtn.disabled = true;
+    els.demoBtn.disabled = true;
+    els.bootScreen.classList.add('hidden');
+    els.footerPrompt.style.opacity = '0';
+    showToast('coming to hug the screen…', 1700);
+    launchConfetti(24);
+    spawnHearts(14, els.hugBtn);
+    tryAudio();
+
+    /* start tiny & far, then transition to big & close */
+    const wrap = els.characterWrap;
+    wrap.classList.add('visible');
+
+    // initial tiny state (no transition yet)
+    wrap.style.transition = 'none';
+    wrap.style.transform   = 'translateX(-50%) scale(0.30)';
+    wrap.style.bottom      = '4vh';
+
+    // start running limbs
+    startRunAnimation();
+
+    // bob on wrapper
+    wrap.style.animation = 'runBob .52s ease-in-out infinite';
+
+    // kick off the approach after one frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        wrap.style.transition = 'transform 4.5s cubic-bezier(.16,1,.3,1), bottom 4.5s cubic-bezier(.16,1,.3,1)';
+        wrap.style.transform  = 'translateX(-50%) scale(1.28)';
+        wrap.style.bottom     = '11vh';
+      });
+    });
+
+    // hearts mid-run
+    const hInterval = setInterval(() => {
+      if (!state.running) return;
+      spawnHearts(2, wrap);
+    }, 280);
+    state.timers.push(hInterval);
+
+    // arrive after 4.6s
+    setTimeout(arriveHug, 4650);
+  }
+
+  function arriveHug() {
+    state.running = false;
+    state.hugged  = true;
+    clearTimers();
+    stopRunAnimation();
+
+    const wrap = els.characterWrap;
+    wrap.style.animation = 'none';
+    wrap.style.transition = 'transform .5s cubic-bezier(.16,1,.3,1)';
+    wrap.style.transform  = 'translateX(-50%) scale(1.52)';
+
+    applyHugPose();
+
+    els.hugFlash.classList.add('show');
+    els.screenHug.classList.add('show');
+    els.hugCopy.classList.add('visible');
+    els.spotlight.style.opacity = '0.92';
+
+    launchFireworks(5);
+    launchConfetti(70);
+    spawnHearts(28, wrap);
+    showToast('Helloo my cutieeee', 2400);
+
+    // camera warm bounce
+    document.body.animate([
+      { transform: 'scale(1)' },
+      { transform: 'scale(1.012)' },
+      { transform: 'scale(1)' }
+    ], { duration: 900, easing: 'ease-out' });
+
+    setTimeout(() => els.buttonBar.classList.add('visible'), 1200);
+  }
+
+  /* ── AUDIO ────────────────────────────────────────────────── */
+  async function tryAudio() {
+    try {
+      els.audio.volume = .5;
+      await els.audio.play();
+    } catch {}
+  }
+
+  /* ── RESET ────────────────────────────────────────────────── */
+  function resetExperience() {
+    state.running = false;
+    state.hugged  = false;
+    clearTimers();
+    stopRunAnimation();
+
+    const wrap = els.characterWrap;
+    wrap.style.transition = 'none';
+    wrap.style.transform  = 'translateX(-50%) scale(.30)';
+    wrap.style.bottom     = '4vh';
+    wrap.style.animation  = 'none';
+    wrap.classList.remove('visible');
+
+    resetPose();
+
+    els.buttonBar.classList.remove('visible');
+    els.hugCopy.classList.remove('visible');
+    els.hugFlash.classList.remove('show');
+    els.screenHug.classList.remove('show');
+    els.spotlight.style.opacity = '.65';
+    els.footerPrompt.style.opacity = '.9';
+    els.bootScreen.classList.remove('hidden');
+    els.hugBtn.disabled  = false;
+    els.demoBtn.disabled = false;
+
+    try { els.audio.pause(); els.audio.currentTime = 0; } catch {}
+  }
+
+  /* ── OVERLAYS ─────────────────────────────────────────────── */
+  function openLetter() {
+    els.letterBody.textContent = CONFIG.letter;
+    els.letterOverlay.classList.add('open');
+    els.letterOverlay.setAttribute('aria-hidden','false');
+    launchConfetti(14);
+  }
+
+  function openGallery() {
+    els.galleryGrid.innerHTML = '';
+    CONFIG.gallery.forEach(item => {
+      const c = document.createElement('div');
+      c.className = 'card-photo';
+
+      const imageHTML = item.image
+        ? `<img src="${item.image}" alt="${item.title || item.caption || 'memory'}" onerror="this.replaceWith(Object.assign(document.createElement('div'), { className: 'emoji-slot', textContent: '${item.emoji || '🫶'}' }))">`
+        : `<div class="emoji-slot">${item.emoji || '🫶'}</div>`;
+
+      c.innerHTML = `
+        ${imageHTML}
+        <div class="caption">
+          <b>${item.title || item.caption || 'Memory'}</b><br>
+          ${item.text || item.caption || ''}
+        </div>
+      `;
+      c.addEventListener('click', () => {
+        launchConfetti(16);
+        showToast(item.title || item.caption || 'memory');
+      });
+      els.galleryGrid.appendChild(c);
+    });
+    els.galleryOverlay.classList.add('open');
+    els.galleryOverlay.setAttribute('aria-hidden','false');
+  }
+
+  function closeOverlay(ov) {
+    ov.classList.remove('open');
+    ov.setAttribute('aria-hidden','true');
+  }
+
+  /* ── FINAL SURPRISE ─────────────────────────────────────── */
+  function finalSurprise() {
+    launchFireworks(12);
+    launchConfetti(90);
+    spawnHearts(38);
+    showToast('one more surprise — saved for later', 2800);
+  }
+
+  /* ── WIRE ─────────────────────────────────────────────────── */
+  function wire() {
+    els.hugBtn.addEventListener('click',  startRun);
+    els.demoBtn.addEventListener('click', startRun);
+    els.againBtn.addEventListener('click',  resetExperience);
+    els.letterBtn.addEventListener('click', openLetter);
+    els.galleryBtn.addEventListener('click',openGallery);
+    els.finalBtn.addEventListener('click',  finalSurprise);
+    els.closeLetter.addEventListener('click',  () => closeOverlay(els.letterOverlay));
+    els.closeGallery.addEventListener('click', () => closeOverlay(els.galleryOverlay));
+    els.letterOverlay.addEventListener('click',  e => { if (e.target===els.letterOverlay)  closeOverlay(els.letterOverlay); });
+    els.galleryOverlay.addEventListener('click', e => { if (e.target===els.galleryOverlay) closeOverlay(els.galleryOverlay); });
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape')  { closeOverlay(els.letterOverlay); closeOverlay(els.galleryOverlay); }
+      if (e.key === 'Enter' && !state.running && !state.hugged) startRun();
+    });
+  }
+
+  /* ── INIT ─────────────────────────────────────────────────── */
+  initSky();
+  wire();
+
+  // ambient heart drops every 6s
+  setInterval(() => { if (!state.running) spawnHearts(2); }, 6000);
+</script>
+
+<!-- EXTRA LOVE SYSTEMS -->
+<script>
+(() => {
+  const onReady = () => {
+    const body = document.body;
+    const app = document.getElementById('app');
+    const scene = document.getElementById('scene');
+    const buttonBar = document.getElementById('buttonBar');
+    const footerPrompt = document.getElementById('footerPrompt');
+    const toast = document.getElementById('toast');
+    const audio = document.getElementById('audio');
+    const moon = document.querySelector('.moon');
+
+    if (!app || !scene || !buttonBar || !footerPrompt) return;
+
+    const enhanceStyle = document.createElement('style');
+    enhanceStyle.textContent = `
+      .xl-counter,
+      .xl-moon-badge,
+      .xl-dock {
+        position: fixed;
+        z-index: 18;
+        opacity: 0;
+        transform: translateY(12px) scale(.98);
+        pointer-events: none;
+        transition: opacity .35s ease, transform .35s cubic-bezier(.16,1,.3,1);
+      }
+
+      .xl-dock.show,
+      .xl-counter.show,
+      .xl-moon-badge.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .xl-dock {
+        right: 0;
+        bottom: 18px;
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        width: min(92vw, 420px);
+        padding: 0;
+        border-radius: 24px 0 0 24px;
+        background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+        border: 1px solid rgba(255,255,255,.16);
+        box-shadow: 0 22px 60px rgba(0,0,0,.34);
+        backdrop-filter: blur(16px);
+        overflow: visible;
+        transform: translateX(calc(100% - 62px)) translateY(12px) scale(.98);
+      }
+
+      .xl-dock.open {
+        transform: translateX(0) translateY(0) scale(1);
+      }
+
+      .xl-dock-toggle {
+        flex: 0 0 62px;
+        width: 62px;
+        min-height: 100%;
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        color: white;
+        font: inherit;
+        font-weight: 800;
+        letter-spacing: .04em;
+        background: linear-gradient(180deg, rgba(255,127,181,.94), rgba(200,60,255,.95));
+        box-shadow: inset -1px 0 0 rgba(255,255,255,.09);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 16px 8px;
+        text-align: center;
+        border-radius: 24px 0 0 24px;
+      }
+
+      .xl-dock-toggle span {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-size: .98rem;
+      }
+
+      .xl-dock-toggle small {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-size: .72rem;
+        opacity: .8;
+      }
+
+      .xl-dock-panel {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .xl-dock:not(.open) .xl-dock-panel {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(18px);
+      }
+
+      .xl-chip {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        color: white;
+        font: inherit;
+        padding: 13px 14px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(255,127,181,.85), rgba(200,60,255,.88));
+        box-shadow: 0 12px 28px rgba(255,92,156,.25), inset 0 1px 0 rgba(255,255,255,.14);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-weight: 700;
+        text-align: left;
+        transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease, filter .2s ease;
+      }
+
+      .xl-chip:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 42px rgba(255,92,156,.32);
+        filter: brightness(1.03);
+      }
+
+      .xl-chip small {
+        display: block;
+        opacity: .72;
+        font-weight: 600;
+      }
+
+      .xl-counter {
+        left: 18px;
+        top: 18px;
+        min-width: 240px;
+        padding: 14px 16px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+        border: 1px solid rgba(255,255,255,.14);
+        box-shadow: 0 18px 48px rgba(0,0,0,.28);
+        backdrop-filter: blur(16px);
+      }
+
+      .xl-counter .label {
+        font-size: .74rem;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.58);
+        margin-bottom: 6px;
+      }
+
+      .xl-counter .value {
+        font-weight: 800;
+        font-size: 1rem;
+        line-height: 1.35;
+        color: white;
+      }
+
+      .xl-moon-badge {
+        left: 18px;
+        bottom: 18px;
+        padding: 12px 14px;
+        border-radius: 999px;
+        background: rgba(8,9,18,.82);
+        border: 1px solid rgba(255,255,255,.14);
+        box-shadow: 0 18px 48px rgba(0,0,0,.28);
+        color: rgba(255,255,255,.9);
+        font-size: .9rem;
+        backdrop-filter: blur(10px);
+      }
+
+      .xl-overlay .modal {
+        max-width: min(96vw, 1080px);
+      }
+
+      .xl-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 12px;
+      }
+
+      .xl-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.12);
+        color: rgba(255,255,255,.84);
+        font-size: .88rem;
+      }
+
+      .xl-panel {
+        border-radius: 28px;
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+        border: 1px solid rgba(255,255,255,.12);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+      }
+
+      .xl-split {
+        display: grid;
+        grid-template-columns: 1.12fr .88fr;
+        gap: 16px;
+      }
+
+      .xl-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .xl-card {
+        border-radius: 20px;
+        padding: 14px 14px 15px;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.12);
+        cursor: pointer;
+        transition: transform .18s ease, background .18s ease, border-color .18s ease;
+      }
+
+      .xl-card:hover {
+        transform: translateY(-2px);
+        background: rgba(255,255,255,.11);
+        border-color: rgba(255,255,255,.18);
+      }
+
+      .xl-card.active {
+        background: linear-gradient(135deg, rgba(255,127,181,.20), rgba(255,214,107,.12));
+        border-color: rgba(255,255,255,.22);
+      }
+
+      .xl-card h4 {
+        margin: 0 0 6px;
+        font-size: 1rem;
+        color: white;
+      }
+
+      .xl-card p {
+        margin: 0;
+        color: rgba(255,255,255,.74);
+        line-height: 1.65;
+        font-size: .94rem;
+      }
+
+      .xl-letter {
+        display: grid;
+        gap: 12px;
+        min-height: 100%;
+      }
+
+      .xl-letter-paper {
+        min-height: 360px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255,251,252,.98), rgba(255,245,249,.98));
+        color: #281827;
+        padding: 20px 22px;
+        box-shadow: 0 18px 55px rgba(0,0,0,.22);
+      }
+
+      .xl-letter-paper .paper-title {
+        color: #ff4f9a;
+        font-weight: 800;
+        letter-spacing: -.02em;
+        margin-bottom: 10px;
+        font-size: 1.15rem;
+      }
+
+      .xl-letter-paper .paper-text {
+        white-space: pre-wrap;
+        line-height: 1.9;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.04rem;
+      }
+
+      .xl-nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .xl-nav .mini-btn {
+        min-width: unset;
+      }
+
+      .xl-jar-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1.1fr;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .xl-jar {
+        position: relative;
+        width: min(100%, 320px);
+        margin: 0 auto;
+        height: 420px;
+        border-radius: 42px 42px 56px 56px;
+        background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+        border: 1px solid rgba(255,255,255,.14);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 18px 60px rgba(0,0,0,.22);
+        overflow: hidden;
+      }
+
+      .xl-jar::before {
+        content: "";
+        position: absolute;
+        inset: 18px 18px 18px 18px;
+        border-radius: 34px 34px 52px 52px;
+        background: radial-gradient(circle at 50% 35%, rgba(255,255,255,.12), rgba(255,255,255,0) 48%);
+        border: 1px solid rgba(255,255,255,.08);
+      }
+
+      .xl-jar::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -8px;
+        transform: translateX(-50%);
+        width: 54%;
+        height: 34px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.06));
+        border: 1px solid rgba(255,255,255,.12);
+      }
+
+      .xl-paper-note {
+        position: absolute;
+        width: 112px;
+        min-height: 74px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #fff, #fff7fb);
+        color: #281827;
+        box-shadow: 0 12px 28px rgba(0,0,0,.18);
+        transform: rotate(var(--rot, 0deg));
+        animation: xlFloatPaper 7s ease-in-out infinite;
+      }
+
+      .xl-paper-note strong {
+        display: block;
+        margin-bottom: 5px;
+        color: #ff4f9a;
+        font-size: .9rem;
+      }
+
+      .xl-paper-note span {
+        display: block;
+        font-size: .84rem;
+        line-height: 1.35;
+        color: #442c40;
+      }
+
+      @keyframes xlFloatPaper {
+        0%,100% { transform: translateY(0) rotate(var(--rot,0deg)); }
+        50% { transform: translateY(-8px) rotate(calc(var(--rot,0deg) + 2deg)); }
+      }
+
+      .xl-jar-detail {
+        display: grid;
+        gap: 12px;
+      }
+
+      .xl-jar-detail .detail-box {
+        border-radius: 22px;
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+        border: 1px solid rgba(255,255,255,.12);
+      }
+
+      .xl-jar-detail .detail-box h4 {
+        margin: 0 0 8px;
+        font-size: 1.1rem;
+      }
+
+      .xl-jar-detail .detail-box p {
+        margin: 0;
+        color: rgba(255,255,255,.78);
+        line-height: 1.8;
+      }
+
+      .xl-jar-detail .detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .xl-game-wrap,
+      .xl-wish-wrap,
+      .xl-future-wrap {
+        display: grid;
+        gap: 14px;
+      }
+
+      .xl-game-stats {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .xl-stat {
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.12);
+        min-width: 120px;
+      }
+
+      .xl-stat .k {
+        font-size: .75rem;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.56);
+        margin-bottom: 5px;
+      }
+
+      .xl-stat .v {
+        font-weight: 800;
+        font-size: 1.05rem;
+      }
+
+      .xl-game-field {
+        position: relative;
+        min-height: 420px;
+        border-radius: 28px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 20%, rgba(255,255,255,.10), transparent 38%),
+          linear-gradient(180deg, rgba(255,127,181,.12), rgba(90,55,140,.14));
+        border: 1px solid rgba(255,255,255,.12);
+      }
+
+      .xl-game-field::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 18% 80%, rgba(255,255,255,.08), transparent 18%),
+          radial-gradient(circle at 84% 78%, rgba(255,255,255,.08), transparent 16%);
+        pointer-events: none;
+      }
+
+      .xl-game-heart {
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        transform: rotate(45deg);
+        background: linear-gradient(135deg, #ff8ab5, #ff4f9a);
+        border-radius: 4px;
+        cursor: pointer;
+        box-shadow: 0 0 12px rgba(255,127,181,.56);
+        animation: xlHeartRise linear forwards;
+      }
+
+      .xl-game-heart::before,
+      .xl-game-heart::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: inherit;
+      }
+
+      .xl-game-heart::before { left: -50%; }
+      .xl-game-heart::after { top: -50%; }
+
+      @keyframes xlHeartRise {
+        from { transform: translateY(0) rotate(45deg) scale(.75); opacity: 0; }
+        12%  { opacity: 1; }
+        to   { transform: translateY(-360px) rotate(45deg) scale(1.15); opacity: 0; }
+      }
+
+      .xl-game-win {
+        padding: 16px 18px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(255,127,181,.18), rgba(255,214,107,.10));
+        border: 1px solid rgba(255,255,255,.14);
+        color: white;
+        font-weight: 700;
+        line-height: 1.7;
+      }
+
+      .xl-wish-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+      }
+
+      .xl-wish-card {
+        border-radius: 18px;
+        padding: 14px 12px;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.12);
+        cursor: pointer;
+        text-align: center;
+        transition: transform .18s ease, background .18s ease;
+      }
+
+      .xl-wish-card:hover {
+        transform: translateY(-2px);
+        background: rgba(255,255,255,.11);
+      }
+
+      .xl-wish-card .star {
+        font-size: 1.6rem;
+        margin-bottom: 8px;
+      }
+
+      .xl-wish-card .msg {
+        font-size: .9rem;
+        color: rgba(255,255,255,.78);
+        line-height: 1.5;
+      }
+
+      .xl-future-scene {
+        position: relative;
+        min-height: 480px;
+        border-radius: 28px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 20%, rgba(255,255,255,.18), transparent 30%),
+          linear-gradient(180deg, #ffcd6e 0%, #ff8fb9 36%, #7a63ff 100%);
+        border: 1px solid rgba(255,255,255,.12);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+      }
+
+      .xl-future-scene::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -40px;
+        transform: translateX(-50%);
+        width: 180%;
+        height: 38%;
+        border-radius: 50%;
+        background: rgba(255,255,255,.10);
+        filter: blur(12px);
+      }
+
+      .xl-future-scene .sun {
+        position: absolute;
+        left: 50%;
+        top: 10%;
+        transform: translateX(-50%);
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #fff, #fff9dd 40%, #ffd56a 72%, #ffb54f);
+        box-shadow: 0 0 60px rgba(255,245,190,.55);
+      }
+
+      .xl-future-scene .path {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 160%;
+        height: 28%;
+        transform: translateX(-50%);
+        background: radial-gradient(ellipse at center bottom, rgba(255,255,255,.20), rgba(255,255,255,0) 65%);
+      }
+
+      .xl-future-copy {
+        position: absolute;
+        left: 50%;
+        bottom: 26px;
+        transform: translateX(-50%);
+        width: min(90%, 860px);
+        padding: 18px 20px;
+        border-radius: 24px;
+        background: rgba(8,9,18,.42);
+        border: 1px solid rgba(255,255,255,.16);
+        backdrop-filter: blur(10px);
+      }
+
+      .xl-future-copy h3 {
+        margin: 0 0 6px;
+        font-size: clamp(1.4rem, 4vw, 2.6rem);
+      }
+
+      .xl-future-copy p {
+        margin: 0;
+        color: rgba(255,255,255,.88);
+        line-height: 1.8;
+      }
+
+      .xl-quote {
+        margin-top: 12px;
+        font-style: italic;
+        color: rgba(255,255,255,.96);
+      }
+
+      .xl-pill-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .xl-pill {
+        padding: 10px 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.09);
+        border: 1px solid rgba(255,255,255,.12);
+        color: rgba(255,255,255,.88);
+        font-size: .88rem;
+      }
+
+      .xl-hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 860px) {
+        .xl-split,
+        .xl-jar-wrap {
+          grid-template-columns: 1fr;
+        }
+
+        .xl-dock {
+          width: min(94vw, 420px);
+        }
+      }
+
+      @media (max-width: 560px) {
+        .xl-dock {
+          width: min(94vw, 360px);
+        }
+
+        .xl-counter {
+          left: 12px;
+          right: 12px;
+          min-width: unset;
+        }
+
+        .xl-moon-badge {
+          left: 12px;
+          bottom: 12px;
+        }
+      }
+    `;
+    document.head.appendChild(enhanceStyle);
+
+    const extraMarkup = `
+      <div class="xl-counter" id="xlCounter" aria-live="polite">
+        <div class="label">Love counter</div>
+        <div class="value" id="xlCounterValue">Unlock the hug first.</div>
+      </div>
+
+      <div class="xl-moon-badge" id="xlMoonBadge">Moon taps: 0/5</div>
+
+      <div class="xl-dock" id="xlDock" aria-label="extra love features">
+        <button class="xl-dock-toggle" id="xlDockToggle" type="button" aria-expanded="false" aria-label="toggle extra love menu">
+          <span>Extras</span>
+          <small>pull</small>
+        </button>
+        <div class="xl-dock-panel">
+          <button class="xl-chip" data-xl-open="playlist">
+            <span>Playlist Mode</span>
+            <small>music & mood</small>
+          </button>
+          <button class="xl-chip" data-xl-open="openwhen">
+            <span>Open-When</span>
+            <small>special letters</small>
+          </button>
+          <button class="xl-chip" data-xl-open="dreams">
+            <span>Dreams Jar</span>
+            <small>future wishes</small>
+          </button>
+          <button class="xl-chip" data-xl-open="game">
+            <span>Heart Catch</span>
+            <small>tiny game</small>
+          </button>
+          <button class="xl-chip" data-xl-open="wish">
+            <span>Wish Wall</span>
+            <small>star secrets</small>
+          </button>
+          <button class="xl-chip" data-xl-open="future">
+            <span>Future Scene</span>
+            <small>final promise</small>
+          </button>
+        </div>
+      </div>
+
+      <div class="overlay xl-overlay" id="xlPlaylistOverlay" aria-hidden="true">
+        <div class="modal xl-panel">
+          <button class="modal-close" data-xl-close="playlist">✕</button>
+          <div class="xl-title-row">
+            <div>
+              <h2>Music Modes</h2>
+              <p>One song, three moods. Change the pulse without changing the heart.</p>
+            </div>
+            <div class="xl-badge" id="xlTrackName">Normal Hug</div>
+          </div>
+          <div class="xl-panel" style="display:grid; gap:14px;">
+            <div class="xl-game-stats">
+              <div class="xl-stat">
+                <div class="k">Current mood</div>
+                <div class="v" id="xlTrackMood">Warm and steady</div>
+              </div>
+              <div class="xl-stat">
+                <div class="k">Progress</div>
+                <div class="v" id="xlTrackTime">0:00 / 0:00</div>
+              </div>
+              <div class="xl-stat">
+                <div class="k">Volume</div>
+                <div class="v" id="xlVolumeLabel">55%</div>
+              </div>
+            </div>
+            <div style="height:10px; border-radius:999px; background:rgba(255,255,255,.10); overflow:hidden;">
+              <div id="xlProgressBar" style="height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#ff7fb5,#ffd56a,#c83cff);"></div>
+            </div>
+            <div class="xl-nav" style="justify-content:space-between; align-items:center;">
+              <div class="xl-pill-row" id="xlModeList"></div>
+              <div class="xl-nav">
+                <button class="mini-btn" id="xlPrevMode">◀ Prev</button>
+                <button class="mini-btn" id="xlPlayPause">▶ Play</button>
+                <button class="mini-btn" id="xlNextMode">Next ▶</button>
+              </div>
+            </div>
+            <div style="display:grid; gap:10px;">
+              <label for="xlVolumeSlider" style="font-size:.9rem; color:rgba(255,255,255,.78);">Volume</label>
+              <input id="xlVolumeSlider" type="range" min="0" max="100" value="55" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay xl-overlay" id="xlOpenWhenOverlay" aria-hidden="true">
+        <div class="modal xl-panel">
+          <button class="modal-close" data-xl-close="openwhen">✕</button>
+          <div class="xl-title-row">
+            <div>
+              <h2>Open-When Letters</h2>
+              <p>Different letters for different days. Click one and the paper changes.</p>
+            </div>
+            <div class="xl-badge" id="xlOpenWhenCounter">1 / 6</div>
+          </div>
+          <div class="xl-split">
+            <div class="xl-list" id="xlOpenWhenList"></div>
+            <div class="xl-letter">
+              <div class="xl-letter-paper">
+                <div class="paper-title" id="xlOpenWhenTitle">Open when you miss me</div>
+                <div class="paper-text" id="xlOpenWhenBody"></div>
+              </div>
+              <div class="xl-nav">
+                <button class="mini-btn" id="xlOpenWhenPrev">◀ Previous</button>
+                <button class="mini-btn" id="xlOpenWhenNext">Next ▶</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay xl-overlay" id="xlDreamsOverlay" aria-hidden="true">
+        <div class="modal xl-panel">
+          <button class="modal-close" data-xl-close="dreams">✕</button>
+          <div class="xl-title-row">
+            <div>
+              <h2>Dreams Jar</h2>
+              <p>Little notes for the future. Tap a paper and read the wish hidden inside.</p>
+            </div>
+            <div class="xl-badge" id="xlDreamsCounter">0 selected</div>
+          </div>
+          <div class="xl-jar-wrap">
+            <div class="xl-jar" id="xlJar"></div>
+            <div class="xl-jar-detail">
+              <div class="detail-box">
+                <h4 id="xlDreamTitle">A dream is waiting</h4>
+                <p id="xlDreamText">Pick a paper from the jar to reveal the story.</p>
+              </div>
+              <div class="detail-box">
+                <h4>What this can become</h4>
+                <p>Photos, tickets, travel plans, future ideas, or tiny promises hidden inside the jar.</p>
+              </div>
+              <div class="detail-actions">
+                <button class="mini-btn" id="xlDreamShuffle">Shuffle papers</button>
+                <button class="mini-btn" id="xlDreamReset">Reset selection</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay xl-overlay" id="xlGameOverlay" aria-hidden="true">
+        <div class="modal xl-panel">
+          <button class="modal-close" data-xl-close="game">✕</button>
+          <div class="xl-title-row">
+            <div>
+              <h2>Heart Catch</h2>
+              <p>Catch twelve hearts before the timer ends.</p>
+            </div>
+            <div class="xl-badge" id="xlGameState">Ready</div>
+          </div>
+          <div class="xl-game-wrap">
+            <div class="xl-game-stats">
+              <div class="xl-stat">
+                <div class="k">Score</div>
+                <div class="v" id="xlGameScore">0 / 12</div>
+              </div>
+              <div class="xl-stat">
+                <div class="k">Time left</div>
+                <div class="v" id="xlGameTime">20s</div>
+              </div>
+              <div class="xl-stat">
+                <div class="k">Best effort</div>
+                <div class="v" id="xlGameBest">0</div>
+              </div>
+            </div>
+            <div class="xl-game-field" id="xlGameField"></div>
+            <div class="xl-game-win" id="xlGameWin" style="display:none;"></div>
+            <div class="xl-nav" style="justify-content:flex-end;">
+              <button class="mini-btn" id="xlGameStart">Start Game</button>
+              <button class="mini-btn" id="xlGameAgain">Play Again</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay xl-overlay" id="xlWishOverlay" aria-hidden="true">
+        <div class="modal xl-panel">
+          <button class="modal-close" data-xl-close="wish">✕</button>
+          <div class="xl-title-row">
+            <div>
+              <h2>Wish Wall</h2>
+              <p>Tap the stars to reveal the wish hidden inside each one.</p>
+            </div>
+            <div class="xl-badge" id="xlWishCounter">0 / 9</div>
+          </div>
+          <div class="xl-wish-wrap">
+            <div class="xl-wish-grid" id="xlWishGrid"></div>
+            <div class="xl-game-win" id="xlWishMessage">The stars are waiting for your touch.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay xl-overlay" id="xlFutureOverlay" aria-hidden="true">
+        <div class="modal xl-panel">
+          <button class="modal-close" data-xl-close="future">✕</button>
+          <div class="xl-title-row">
+            <div>
+              <h2>Future Scene</h2>
+              <p>A small sunrise for the day the screen is no longer between us.</p>
+            </div>
+            <div class="xl-badge">A promise</div>
+          </div>
+          <div class="xl-future-wrap">
+            <div class="xl-future-scene">
+              <div class="sun"></div>
+              <div class="path"></div>
+              <div class="xl-future-copy">
+                <h3>One day, I will not need to run through a screen.</h3>
+                <p>Then I will just walk up to you, open my arms, and stay there.</p>
+                <div class="xl-quote">Until then, I keep building moments like this one.</div>
+              </div>
+            </div>
+            <div class="xl-nav" style="justify-content:space-between;">
+              <div class="xl-pill-row">
+                <span class="xl-pill">Soft sunrise</span>
+                <span class="xl-pill">Promise scene</span>
+                <span class="xl-pill">Final embrace</span>
+              </div>
+              <button class="mini-btn" id="xlFutureClose">Back to the hug</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay xl-overlay" id="xlSecretOverlay" aria-hidden="true">
+        <div class="modal xl-panel">
+          <button class="modal-close" data-xl-close="secret">✕</button>
+          <div class="xl-title-row">
+            <div>
+              <h2>Secret Memory</h2>
+              <p>Unlocked because you kept clicking the moon.</p>
+            </div>
+            <div class="xl-badge">Hidden note</div>
+          </div>
+          <div class="xl-letter-paper">
+            <div class="paper-title">A tiny secret for you</div>
+            <div class="paper-text" id="xlSecretText"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', extraMarkup);
+
+    const xlDock = document.getElementById('xlDock');
+    const xlDockToggle = document.getElementById('xlDockToggle');
+    const xlCounter = document.getElementById('xlCounter');
+    const xlCounterValue = document.getElementById('xlCounterValue');
+    const xlMoonBadge = document.getElementById('xlMoonBadge');
+    const xlPlaylistOverlay = document.getElementById('xlPlaylistOverlay');
+    const xlOpenWhenOverlay = document.getElementById('xlOpenWhenOverlay');
+    const xlDreamsOverlay = document.getElementById('xlDreamsOverlay');
+    const xlGameOverlay = document.getElementById('xlGameOverlay');
+    const xlWishOverlay = document.getElementById('xlWishOverlay');
+    const xlFutureOverlay = document.getElementById('xlFutureOverlay');
+    const xlSecretOverlay = document.getElementById('xlSecretOverlay');
+
+    const xlTrackName = document.getElementById('xlTrackName');
+    const xlTrackMood = document.getElementById('xlTrackMood');
+    const xlTrackTime = document.getElementById('xlTrackTime');
+    const xlVolumeLabel = document.getElementById('xlVolumeLabel');
+    const xlProgressBar = document.getElementById('xlProgressBar');
+    const xlModeList = document.getElementById('xlModeList');
+    const xlPrevMode = document.getElementById('xlPrevMode');
+    const xlPlayPause = document.getElementById('xlPlayPause');
+    const xlNextMode = document.getElementById('xlNextMode');
+    const xlVolumeSlider = document.getElementById('xlVolumeSlider');
+
+    const xlOpenWhenList = document.getElementById('xlOpenWhenList');
+    const xlOpenWhenTitle = document.getElementById('xlOpenWhenTitle');
+    const xlOpenWhenBody = document.getElementById('xlOpenWhenBody');
+    const xlOpenWhenCounter = document.getElementById('xlOpenWhenCounter');
+    const xlOpenWhenPrev = document.getElementById('xlOpenWhenPrev');
+    const xlOpenWhenNext = document.getElementById('xlOpenWhenNext');
+
+    const xlJar = document.getElementById('xlJar');
+    const xlDreamTitle = document.getElementById('xlDreamTitle');
+    const xlDreamText = document.getElementById('xlDreamText');
+    const xlDreamsCounter = document.getElementById('xlDreamsCounter');
+    const xlDreamShuffle = document.getElementById('xlDreamShuffle');
+    const xlDreamReset = document.getElementById('xlDreamReset');
+
+    const xlGameField = document.getElementById('xlGameField');
+    const xlGameScore = document.getElementById('xlGameScore');
+    const xlGameTime = document.getElementById('xlGameTime');
+    const xlGameBest = document.getElementById('xlGameBest');
+    const xlGameState = document.getElementById('xlGameState');
+    const xlGameWin = document.getElementById('xlGameWin');
+    const xlGameStart = document.getElementById('xlGameStart');
+    const xlGameAgain = document.getElementById('xlGameAgain');
+
+    const xlWishGrid = document.getElementById('xlWishGrid');
+    const xlWishCounter = document.getElementById('xlWishCounter');
+    const xlWishMessage = document.getElementById('xlWishMessage');
+
+    const xlSecretText = document.getElementById('xlSecretText');
+    const xlFutureClose = document.getElementById('xlFutureClose');
+
+    const XL_RELATIONSHIP_START = new Date('2023-04-01T00:00:00');
+    const XL_PLAYLIST = [
+      { name: 'Normal Hug', mood: 'Warm and steady', rate: 1.00, volume: 0.55, note: 'Balanced and calm.' },
+      { name: 'Slow Glow', mood: 'Soft heartbeat', rate: 0.88, volume: 0.58, note: 'A slower, warmer pulse.' },
+      { name: 'Finale Rise', mood: 'Bright ending', rate: 1.08, volume: 0.62, note: 'A slightly brighter lift.' }
+    ];
+    const XL_OPEN_WHEN = [
+      {
+        title: 'Open when you miss me',
+        body: 'Read this when the day feels too long.\n\nIf I could, I would appear beside you, hold your hand, and let the quiet pass without hurting you.\n\nUntil then, keep this paper close.'
+      },
+      {
+        title: 'Open when you are sad',
+        body: 'Let yourself rest.\n\nYou do not have to be strong every second.\n\nI still love you in the moments where you feel weak, tired, or unsure.'
+      },
+      {
+        title: 'Open when we fight',
+        body: 'We can disagree and still choose each other.\n\nTake a breath.\nCome back softer.\nRemember we are on the same side.'
+      },
+      {
+        title: 'Open when you need a smile',
+        body: 'I probably already miss your smile.\n\nSo here is mine, sent quietly through a little screen-hug and a lot of love.'
+      },
+      {
+        title: 'Open on your birthday',
+        body: 'Today is yours.\n\nI hope your day feels full of warmth, tiny surprises, and the exact kind of happiness that stays with you after the lights go off.'
+      },
+      {
+        title: 'Open when you need courage',
+        body: 'You have already survived harder days than this.\n\nThat means tomorrow is not beyond you.\nI believe in you even before you believe in yourself.'
+      }
+    ];
+    const XL_DREAMS = [
+      { title: 'Travel together', text: 'A suitcase, a sunrise, and a place we have never seen before.' },
+      { title: 'A little home', text: 'A room filled with photos, books, music, and warm light.' },
+      { title: 'Late-night talks', text: 'The kind of quiet conversation that makes time disappear.' },
+      { title: 'A future pet', text: 'A tiny creature that follows us everywhere and sleeps near our feet.' },
+      { title: 'Stargazing', text: 'A sky full of stars and no hurry to go home.' },
+      { title: 'Shared routines', text: 'Coffee, morning messages, and a life that feels easy together.' }
+    ];
+    const XL_WISHES = [
+      'I wish we always find our way back to each other.',
+      'I wish your hard days become softer.',
+      'I wish every hug I send reaches you somehow.',
+      'I wish your smile stays safe with me.',
+      'I wish our future is calm and kind.',
+      'I wish your dreams grow bigger than fear.',
+      'I wish our memories keep getting warmer.',
+      'I wish this little world feels like us.',
+      'I wish every star keeps one promise for you.'
+    ];
+    const XL_SECRET = [
+      'You are the most beautiful habit my heart ever learned.',
+      'The moon counted your clicks and decided you were worth a secret.',
+      'If this were real, I would be standing a little closer right now.',
+      'Keep this note. Use it on days when your heart needs a softer voice.'
+    ].join('\n\n');
+
+    let xlButtonBarShown = false;
+    let xlMoonTaps = 0;
+    let xlCurrentMode = 0;
+    let xlCurrentOpenWhen = 0;
+    let xlDreamSelection = -1;
+    let xlGameActive = false;
+    let xlGameScoreValue = 0;
+    let xlGameBestValue = 0;
+    let xlGameTimeLeft = 20;
+    let xlGameTimer = null;
+    let xlGameSpawnTimer = null;
+    let xlGameList = [];
+    let xlWishOpened = 0;
+
+    const supports = {
+      confetti: typeof launchConfetti === 'function',
+      hearts: typeof spawnHearts === 'function',
+      fireworks: typeof launchFireworks === 'function',
+      toast: typeof showToast === 'function'
+    };
+    const xlToast = (msg, ms=2200) => supports.toast ? showToast(msg, ms) : console.log(msg);
+    const xlConfetti = (n=20) => { if (supports.confetti) launchConfetti(n); };
+    const xlHearts = (n=10, from=null) => { if (supports.hearts) spawnHearts(n, from); };
+    const xlFireworks = (n=4) => { if (supports.fireworks) launchFireworks(n); };
+
+    function escapeHTML(str='') {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function openXL(target) {
+      const map = {
+        playlist: xlPlaylistOverlay,
+        openwhen: xlOpenWhenOverlay,
+        dreams: xlDreamsOverlay,
+        game: xlGameOverlay,
+        wish: xlWishOverlay,
+        future: xlFutureOverlay,
+        secret: xlSecretOverlay
+      };
+      const ov = map[target];
+      if (!ov) return;
+      ov.classList.add('open');
+      ov.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeXL(target) {
+      const map = {
+        playlist: xlPlaylistOverlay,
+        openwhen: xlOpenWhenOverlay,
+        dreams: xlDreamsOverlay,
+        game: xlGameOverlay,
+        wish: xlWishOverlay,
+        future: xlFutureOverlay,
+        secret: xlSecretOverlay
+      };
+      const ov = map[target];
+      if (!ov) return;
+      ov.classList.remove('open');
+      ov.setAttribute('aria-hidden', 'true');
+    }
+
+    function updateRelationshipCounter() {
+      const now = new Date();
+      const diff = Math.max(0, now - XL_RELATIONSHIP_START);
+      const sec = Math.floor(diff / 1000);
+      const days = Math.floor(sec / 86400);
+      const hours = Math.floor((sec % 86400) / 3600);
+      const mins = Math.floor((sec % 3600) / 60);
+      const yrs = Math.floor(days / 365);
+      const remDays = days % 365;
+
+      const text = yrs > 0
+        ? `${yrs}y ${remDays}d • ${hours}h ${mins}m`
+        : `${days}d • ${hours}h ${mins}m`;
+
+      xlCounterValue.textContent = `Together for ${text}`;
+    }
+
+    function syncDockVisibility() {
+      const visible = buttonBar.classList.contains('visible');
+      if (visible !== xlButtonBarShown) {
+        xlButtonBarShown = visible;
+        xlDock.classList.toggle('show', visible);
+        xlCounter.classList.toggle('show', visible);
+        xlMoonBadge.classList.toggle('show', visible || xlMoonTaps > 0);
+      }
+    }
+
+    function renderPlaylistMode() {
+      const mode = XL_PLAYLIST[xlCurrentMode];
+      xlTrackName.textContent = mode.name;
+      xlTrackMood.textContent = mode.mood;
+      xlVolumeLabel.textContent = `${Math.round((audio.volume || mode.volume) * 100)}%`;
+
+      if (audio) {
+        audio.playbackRate = mode.rate;
+        audio.volume = mode.volume;
+      }
+
+      xlModeList.innerHTML = '';
+      XL_PLAYLIST.forEach((item, idx) => {
+        const pill = document.createElement('button');
+        pill.className = 'xl-pill';
+        if (idx === xlCurrentMode) pill.style.borderColor = 'rgba(255,255,255,.25)';
+        pill.textContent = item.name;
+        pill.addEventListener('click', () => {
+          xlCurrentMode = idx;
+          renderPlaylistMode();
+          xlToast(`${item.name} selected`, 1400);
+        });
+        xlModeList.appendChild(pill);
+      });
+    }
+
+    function syncAudioProgress() {
+      if (!audio || !xlPlaylistOverlay.classList.contains('open')) return;
+      const duration = audio.duration || 0;
+      const current = audio.currentTime || 0;
+      const pct = duration ? (current / duration) * 100 : 0;
+      xlProgressBar.style.width = `${pct}%`;
+      xlTrackTime.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+      xlVolumeLabel.textContent = `${Math.round((audio.volume || 0) * 100)}%`;
+    }
+
+    function formatTime(sec) {
+      if (!Number.isFinite(sec)) return '0:00';
+      const s = Math.max(0, Math.floor(sec));
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${m}:${String(r).padStart(2, '0')}`;
+    }
+
+    function playPauseAudio() {
+      if (!audio) return;
+      if (audio.paused) {
+        audio.play().then(() => {
+          xlPlayPause.textContent = '⏸ Pause';
+          xlToast('music on', 1000);
+        }).catch(() => xlToast('Tap once more to start audio.', 1600));
+      } else {
+        audio.pause();
+        xlPlayPause.textContent = '▶ Play';
+      }
+    }
+
+    function stepPlaylist(dir) {
+      xlCurrentMode = (xlCurrentMode + dir + XL_PLAYLIST.length) % XL_PLAYLIST.length;
+      renderPlaylistMode();
+      if (audio) {
+        audio.currentTime = 0;
+        audio.playbackRate = XL_PLAYLIST[xlCurrentMode].rate;
+        audio.volume = XL_PLAYLIST[xlCurrentMode].volume;
+      }
+      xlToast(XL_PLAYLIST[xlCurrentMode].name, 1200);
+      if (audio && !audio.paused) {
+        audio.play().catch(() => {});
+      }
+    }
+
+    function renderOpenWhen() {
+      xlOpenWhenList.innerHTML = '';
+      XL_OPEN_WHEN.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'xl-card';
+        card.innerHTML = `
+          <h4>${escapeHTML(item.title)}</h4>
+          <p>${escapeHTML(item.body.split('\n')[0])}</p>
+        `;
+        card.addEventListener('click', () => {
+          xlCurrentOpenWhen = idx;
+          updateOpenWhenDetail();
+          setActiveOpenWhen(idx);
+          xlToast(item.title, 1300);
+        });
+        xlOpenWhenList.appendChild(card);
+      });
+      updateOpenWhenDetail();
+      setActiveOpenWhen(xlCurrentOpenWhen);
+    }
+
+    function setActiveOpenWhen(idx) {
+      [...xlOpenWhenList.children].forEach((child, i) => {
+        child.classList.toggle('active', i === idx);
+      });
+      xlOpenWhenCounter.textContent = `${idx + 1} / ${XL_OPEN_WHEN.length}`;
+    }
+
+    function updateOpenWhenDetail() {
+      const item = XL_OPEN_WHEN[xlCurrentOpenWhen];
+      xlOpenWhenTitle.textContent = item.title;
+      xlOpenWhenBody.textContent = item.body;
+    }
+
+    function renderDreams() {
+      xlJar.innerHTML = '';
+      XL_DREAMS.forEach((dream, idx) => {
+        const note = document.createElement('button');
+        note.type = 'button';
+        note.className = 'xl-paper-note';
+        note.style.left = `${12 + (idx % 2) * 48}px`;
+        note.style.top = `${34 + idx * 48}px`;
+        note.style.setProperty('--rot', `${-8 + idx * 3}deg`);
+        note.innerHTML = `
+          <strong>${dream.title}</strong>
+          <span>${dream.text}</span>
+        `;
+        note.addEventListener('click', () => {
+          xlDreamSelection = idx;
+          xlDreamTitle.textContent = dream.title;
+          xlDreamText.textContent = dream.text + '\n\nMaybe this one is already on its way.';
+          xlDreamsCounter.textContent = `${idx + 1} selected`;
+          xlConfetti(8);
+          xlHearts(4, note);
+        });
+        xlJar.appendChild(note);
+      });
+    }
+
+    function shuffleDreams() {
+      XL_DREAMS.sort(() => Math.random() - 0.5);
+      renderDreams();
+      xlToast('dreams shuffled', 1200);
+    }
+
+    function resetDreams() {
+      xlDreamSelection = -1;
+      xlDreamTitle.textContent = 'A dream is waiting';
+      xlDreamText.textContent = 'Pick a paper from the jar to reveal the story.';
+      xlDreamsCounter.textContent = '0 selected';
+      renderDreams();
+    }
+
+    function startHeartGame() {
+      if (xlGameActive) return;
+      xlGameActive = true;
+      xlGameScoreValue = 0;
+      xlGameTimeLeft = 20;
+      xlGameList.forEach(clearTimeout);
+      xlGameList = [];
+      xlGameField.innerHTML = '';
+      xlGameWin.style.display = 'none';
+      xlGameState.textContent = 'Catch them!';
+      xlGameScore.textContent = `0 / 12`;
+      xlGameTime.textContent = `20s`;
+      xlGameBest.textContent = String(xlGameBestValue);
+      xlGameStart.textContent = 'Running';
+      xlGameAgain.textContent = 'Play Again';
+
+      const spawn = () => {
+        if (!xlGameActive) return;
+        const heart = document.createElement('button');
+        heart.type = 'button';
+        heart.className = 'xl-game-heart';
+        const size = 16 + Math.random() * 18;
+        heart.style.width = `${size}px`;
+        heart.style.height = `${size}px`;
+        heart.style.left = `${8 + Math.random() * 84}%`;
+        heart.style.top = `${70 + Math.random() * 16}%`;
+        heart.style.animationDuration = `${2.8 + Math.random() * 1.8}s`;
+        heart.addEventListener('click', () => {
+          if (!xlGameActive) return;
+          heart.remove();
+          xlGameScoreValue += 1;
+          xlGameScore.textContent = `${xlGameScoreValue} / 12`;
+          xlGameBestValue = Math.max(xlGameBestValue, xlGameScoreValue);
+          xlGameBest.textContent = String(xlGameBestValue);
+          xlConfetti(4);
+          xlHearts(2, heart);
+          if (xlGameScoreValue >= 12) {
+            finishHeartGame(true);
+          }
+        });
+        xlGameField.appendChild(heart);
+        xlGameList.push(setTimeout(() => heart.remove(), 3400));
+      };
+
+      spawn();
+      xlGameSpawnTimer = setInterval(spawn, 540);
+      xlGameTimer = setInterval(() => {
+        xlGameTimeLeft -= 1;
+        xlGameTime.textContent = `${xlGameTimeLeft}s`;
+        if (xlGameTimeLeft <= 0) {
+          finishHeartGame(false);
+        }
+      }, 1000);
+    }
+
+    function finishHeartGame(win) {
+      if (!xlGameActive) return;
+      xlGameActive = false;
+      clearInterval(xlGameTimer);
+      clearInterval(xlGameSpawnTimer);
+      xlGameTimer = null;
+      xlGameSpawnTimer = null;
+      xlGameState.textContent = win ? 'You won' : 'Time up';
+      xlGameStart.textContent = 'Start Game';
+      xlGameWin.style.display = 'block';
+      xlGameWin.textContent = win
+        ? 'You caught all my little hearts. That means you kept them safe.'
+        : `You caught ${xlGameScoreValue} hearts. That still counts as love.`;
+      xlToast(win ? 'heart game complete' : 'try again', 1800);
+      xlFireworks(win ? 6 : 3);
+    }
+
+    function buildWishWall() {
+      xlWishGrid.innerHTML = '';
+      XL_WISHES.forEach((wish, idx) => {
+        const card = document.createElement('div');
+        card.className = 'xl-wish-card';
+        card.innerHTML = `
+          <div class="star">⭐</div>
+          <div class="msg">${escapeHTML(wish)}</div>
+        `;
+        card.addEventListener('click', () => {
+          xlWishOpened += 1;
+          xlWishCounter.textContent = `${xlWishOpened} / ${XL_WISHES.length}`;
+          xlWishMessage.textContent = wish;
+          xlConfetti(6);
+          xlHearts(3, card);
+          if (xlWishOpened === XL_WISHES.length) {
+            xlWishMessage.textContent = 'Every star has been touched. That is a lot of wishes for one heart to hold.';
+          }
+        });
+        xlWishGrid.appendChild(card);
+      });
+    }
+
+    function openFutureScene() {
+      xlFutureOverlay.classList.add('open');
+      xlFutureOverlay.setAttribute('aria-hidden', 'false');
+      xlFireworks(2);
+      xlConfetti(10);
+    }
+
+    function writeSecret() {
+      xlSecretText.textContent = XL_SECRET;
+    }
+
+    function showDockIfNeeded() {
+      syncDockVisibility();
+      updateRelationshipCounter();
+    }
+
+    function handleMoonTap() {
+      xlMoonTaps += 1;
+      xlMoonBadge.textContent = `Moon taps: ${xlMoonTaps}/5`;
+      xlMoonBadge.classList.add('show');
+      if (xlMoonTaps >= 5) {
+        xlMoonTaps = 0;
+        xlMoonBadge.textContent = 'Moon taps: 0/5';
+        writeSecret();
+        openXL('secret');
+        xlFireworks(4);
+        xlConfetti(18);
+      } else {
+        xlToast(`Moon tap ${xlMoonTaps}/5`, 900);
+      }
+    }
+
+    function wireEnhancements() {
+      document.body.addEventListener('click', (ev) => {
+        const open = ev.target.closest('[data-xl-open]');
+        const close = ev.target.closest('[data-xl-close]');
+        if (open) {
+          const target = open.getAttribute('data-xl-open');
+          if (target === 'future') openFutureScene();
+          else openXL(target);
+          if (target === 'playlist') renderPlaylistMode();
+          if (target === 'openwhen') renderOpenWhen();
+          if (target === 'dreams') renderDreams();
+          if (target === 'wish') buildWishWall();
+          xlConfetti(8);
+          return;
+        }
+        if (close) {
+          closeXL(close.getAttribute('data-xl-close'));
+          return;
+        }
+      });
+
+      document.getElementById('xlFutureClose')?.addEventListener('click', () => closeXL('future'));
+      xlPlayPause.addEventListener('click', playPauseAudio);
+      xlPrevMode.addEventListener('click', () => stepPlaylist(-1));
+      xlNextMode.addEventListener('click', () => stepPlaylist(1));
+      xlVolumeSlider.addEventListener('input', () => {
+        const v = Number(xlVolumeSlider.value) / 100;
+        if (audio) audio.volume = v;
+        xlVolumeLabel.textContent = `${Math.round(v * 100)}%`;
+      });
+      audio?.addEventListener('timeupdate', syncAudioProgress);
+      audio?.addEventListener('loadedmetadata', syncAudioProgress);
+      audio?.addEventListener('play', () => xlPlayPause.textContent = '⏸ Pause');
+      audio?.addEventListener('pause', () => xlPlayPause.textContent = '▶ Play');
+
+      xlOpenWhenPrev.addEventListener('click', () => {
+        xlCurrentOpenWhen = (xlCurrentOpenWhen - 1 + XL_OPEN_WHEN.length) % XL_OPEN_WHEN.length;
+        updateOpenWhenDetail();
+        setActiveOpenWhen(xlCurrentOpenWhen);
+      });
+      xlOpenWhenNext.addEventListener('click', () => {
+        xlCurrentOpenWhen = (xlCurrentOpenWhen + 1) % XL_OPEN_WHEN.length;
+        updateOpenWhenDetail();
+        setActiveOpenWhen(xlCurrentOpenWhen);
+      });
+
+      xlDreamShuffle.addEventListener('click', shuffleDreams);
+      xlDreamReset.addEventListener('click', resetDreams);
+
+      xlGameStart.addEventListener('click', startHeartGame);
+      xlGameAgain.addEventListener('click', startHeartGame);
+
+      moon?.addEventListener('click', handleMoonTap);
+      xlDockToggle?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const expanded = !xlDock.classList.contains('open');
+        xlDock.classList.toggle('open', expanded);
+        xlDockToggle.setAttribute('aria-expanded', String(expanded));
+      });
+
+      document.addEventListener('click', (ev) => {
+        if (!xlDock.classList.contains('open')) return;
+        if (xlDock.contains(ev.target)) return;
+        xlDock.classList.remove('open');
+        xlDockToggle?.setAttribute('aria-expanded', 'false');
+      });
+
+      if (buttonBar) {
+        const obs = new MutationObserver(showDockIfNeeded);
+        obs.observe(buttonBar, { attributes: true, attributeFilter: ['class'] });
+      }
+
+      againBtn?.addEventListener('click', () => {
+        xlDock.classList.remove('show');
+        xlDock.classList.remove('open');
+        xlDockToggle?.setAttribute('aria-expanded', 'false');
+        xlCounter.classList.remove('show');
+        xlMoonBadge.classList.remove('show');
+      });
+
+      setInterval(showDockIfNeeded, 300);
+      setInterval(updateRelationshipCounter, 1000);
+      setInterval(syncAudioProgress, 250);
+      showDockIfNeeded();
+      updateRelationshipCounter();
+      renderPlaylistMode();
+      updateOpenWhenDetail();
+      renderDreams();
+      buildWishWall();
+      writeSecret();
+    }
+
+    wireEnhancements();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', onReady, { once: true });
+  } else {
+    onReady();
+  }
+})();
+</script>
+
+</body>
+</html>
